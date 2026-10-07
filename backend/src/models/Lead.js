@@ -1,0 +1,112 @@
+import mongoose from 'mongoose';
+
+const leadSchema = new mongoose.Schema(
+  {
+    leadId: {
+      type: String,
+      unique: true,
+      index: true
+    },
+    name: {
+      type: String,
+      required: [true, 'Lead name is required'],
+      trim: true
+    },
+    phone: {
+      type: String,
+      required: [true, 'Lead phone number is required'],
+      trim: true,
+      index: true
+    },
+    email: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    company: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    clientType: {
+      type: String,
+      enum: ['Buyer', 'Tenant', 'Investor', 'Corporate'],
+      default: 'Corporate'
+    },
+    status: {
+      type: String,
+      enum: ['Lead', 'In Discussion', 'Site Visit Scheduled', 'Deal Closed', 'Cold / Inactive'],
+      default: 'Lead',
+      index: true
+    },
+    budget: {
+      type: Number,
+      default: 0
+    },
+    requirementSqFt: {
+      type: Number,
+      default: 0
+    },
+    preferredSector: {
+      type: String,
+      trim: true,
+      default: 'Sector 62'
+    },
+    portal: {
+      type: String,
+      enum: ['officespaceinnoida', 'trinetraestates', 'general', 'other'],
+      default: 'officespaceinnoida',
+      index: true
+    },
+    source: {
+      type: String,
+      default: 'Direct Call',
+      index: true
+    },
+    followUpDate: {
+      type: Date
+    },
+    siteVisitDetails: {
+      propertyTitle: { type: String, default: '' },
+      visitDate: { type: Date },
+      remarks: { type: String, default: '' }
+    },
+    notes: {
+      type: String,
+      default: ''
+    }
+  },
+  {
+    timestamps: true
+  }
+);
+
+// Auto-generate sequential or unique leadId
+leadSchema.pre('save', async function (next) {
+  if (!this.leadId) {
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    this.leadId = `LD-${Date.now().toString().slice(-4)}${randomSuffix}`;
+  }
+  next();
+});
+
+// High-speed compound indexes for 100,000+ lead records
+leadSchema.index({ status: 1, createdAt: -1 });
+leadSchema.index({ portal: 1, createdAt: -1 });
+leadSchema.index({ source: 1, status: 1 });
+leadSchema.index({ clientType: 1, status: 1 });
+leadSchema.index({ createdAt: -1 });
+leadSchema.index({ followUpDate: 1, status: 1 });
+
+// Full-text search index for fast keyword matching
+leadSchema.index({
+  name: 'text',
+  phone: 'text',
+  email: 'text',
+  company: 'text',
+  preferredSector: 'text'
+});
+
+const Lead = mongoose.models.Lead || mongoose.model('Lead', leadSchema);
+
+export default Lead;
